@@ -1,0 +1,160 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with student background and preferences",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "college": { "type": "string" },
+        "course": { "type": "string" },
+        "year": { "type": "string" },
+        "bio": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "timezone": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "email", "createdAt"]
+    },
+    "Hackathon": {
+      "title": "Hackathon",
+      "description": "Hackathon competition entry",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "organizer": { "type": "string" },
+        "websiteUrl": { "type": "string" },
+        "registrationUrl": { "type": "string" },
+        "description": { "type": "string" },
+        "problemStatement": { "type": "string" },
+        "domain": { "type": "string" },
+        "mode": { "type": "string", "enum": ["Online", "Offline", "Hybrid"] },
+        "teamName": { "type": "string" },
+        "teamSize": { "type": "integer" },
+        "status": { "type": "string" },
+        "registrationDate": { "type": "string" },
+        "registrationDeadline": { "type": "string" },
+        "submissionDeadline": { "type": "string" },
+        "finalEventDate": { "type": "string" },
+        "prizeInfo": { "type": "string" },
+        "isArchived": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "organizer", "status", "createdAt"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Actionable task for hackathon or project",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "hackathonId": { "type": "string" },
+        "projectId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "priority": { "type": "string", "enum": ["Critical", "High", "Medium", "Low"] },
+        "status": { "type": "string", "enum": ["Backlog", "To Do", "In Progress", "Under Review", "Completed", "Blocked"] },
+        "dueDate": { "type": "string" },
+        "assignedMember": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "priority", "status", "createdAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Hackathon project details",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "hackathonId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "problemStatement": { "type": "string" },
+        "proposedSolution": { "type": "string" },
+        "techStack": { "type": "string" },
+        "githubRepo": { "type": "string" },
+        "liveDeployment": { "type": "string" },
+        "demoVideo": { "type": "string" },
+        "documentation": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "status", "createdAt"]
+    },
+    "Submission": {
+      "title": "Submission",
+      "description": "Submission checklist deliverable item",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "hackathonId": { "type": "string" },
+        "title": { "type": "string" },
+        "deliverableType": { "type": "string" },
+        "fileUrl": { "type": "string" },
+        "externalUrl": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "In Progress", "Completed", "Submitted", "Verified"] },
+        "submittedAt": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "hackathonId", "title", "status", "createdAt"]
+    },
+    "Achievement": {
+      "title": "Achievement",
+      "description": "Hackathon result and portfolio achievement",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "hackathonId": { "type": "string" },
+        "competitionName": { "type": "string" },
+        "projectName": { "type": "string" },
+        "result": { "type": "string" },
+        "rank": { "type": "string" },
+        "date": { "type": "string" },
+        "organizer": { "type": "string" },
+        "certificateUrl": { "type": "string" },
+        "proofUrl": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "competitionName", "result", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profile document"
+    },
+    "/users/{userId}/hackathons/{hackathonId}": {
+      "schema": "Hackathon",
+      "description": "User's hackathon competitions"
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "User's hackathon and project tasks"
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": "Project",
+      "description": "User's hackathon projects"
+    },
+    "/users/{userId}/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "User's hackathon deliverables and submissions"
+    },
+    "/users/{userId}/achievements/{achievementId}": {
+      "schema": "Achievement",
+      "description": "User's hackathon achievements and awards"
+    }
+  }
+}

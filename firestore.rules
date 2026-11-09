@@ -1,0 +1,208 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.email is string && data.email.size() <= 150 &&
+             (!('college' in data) || (data.college is string && data.college.size() <= 150)) &&
+             (!('course' in data) || (data.course is string && data.course.size() <= 150)) &&
+             (!('year' in data) || (data.year is string && data.year.size() <= 50)) &&
+             (!('bio' in data) || (data.bio is string && data.bio.size() <= 500)) &&
+             (!('avatarUrl' in data) || (data.avatarUrl is string && data.avatarUrl.size() <= 500)) &&
+             (!('timezone' in data) || (data.timezone is string && data.timezone.size() <= 50));
+    }
+
+    function isValidHackathon(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 150 &&
+             data.organizer is string && data.organizer.size() > 0 && data.organizer.size() <= 150 &&
+             data.status is string && data.status.size() <= 50 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+             (!('problemStatement' in data) || (data.problemStatement is string && data.problemStatement.size() <= 5000)) &&
+             (!('domain' in data) || (data.domain is string && data.domain.size() <= 100)) &&
+             (!('mode' in data) || (data.mode is string && data.mode.size() <= 50)) &&
+             (!('teamName' in data) || (data.teamName is string && data.teamName.size() <= 100)) &&
+             (!('teamSize' in data) || data.teamSize is int) &&
+             (!('websiteUrl' in data) || (data.websiteUrl is string && data.websiteUrl.size() <= 500)) &&
+             (!('registrationUrl' in data) || (data.registrationUrl is string && data.registrationUrl.size() <= 500)) &&
+             (!('prizeInfo' in data) || (data.prizeInfo is string && data.prizeInfo.size() <= 500)) &&
+             (!('isArchived' in data) || data.isArchived is bool);
+    }
+
+    function isValidTask(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.priority is string && data.priority in ['Critical', 'High', 'Medium', 'Low'] &&
+             data.status is string && data.status in ['Backlog', 'To Do', 'In Progress', 'Under Review', 'Completed', 'Blocked'] &&
+             (!('hackathonId' in data) || (data.hackathonId is string && data.hackathonId.size() <= 128)) &&
+             (!('projectId' in data) || (data.projectId is string && data.projectId.size() <= 128)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+             (!('category' in data) || (data.category is string && data.category.size() <= 100)) &&
+             (!('dueDate' in data) || (data.dueDate is string && data.dueDate.size() <= 50)) &&
+             (!('assignedMember' in data) || (data.assignedMember is string && data.assignedMember.size() <= 100)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000));
+    }
+
+    function isValidProject(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.status is string && data.status.size() <= 50 &&
+             (!('hackathonId' in data) || (data.hackathonId is string && data.hackathonId.size() <= 128)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 2000)) &&
+             (!('problemStatement' in data) || (data.problemStatement is string && data.problemStatement.size() <= 3000)) &&
+             (!('proposedSolution' in data) || (data.proposedSolution is string && data.proposedSolution.size() <= 3000)) &&
+             (!('techStack' in data) || (data.techStack is string && data.techStack.size() <= 500)) &&
+             (!('githubRepo' in data) || (data.githubRepo is string && data.githubRepo.size() <= 500)) &&
+             (!('liveDeployment' in data) || (data.liveDeployment is string && data.liveDeployment.size() <= 500)) &&
+             (!('demoVideo' in data) || (data.demoVideo is string && data.demoVideo.size() <= 500)) &&
+             (!('documentation' in data) || (data.documentation is string && data.documentation.size() <= 500));
+    }
+
+    function isValidSubmission(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.hackathonId is string && data.hackathonId.size() <= 128 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.status is string && data.status in ['Pending', 'In Progress', 'Completed', 'Submitted', 'Verified'] &&
+             (!('deliverableType' in data) || (data.deliverableType is string && data.deliverableType.size() <= 100)) &&
+             (!('fileUrl' in data) || (data.fileUrl is string && data.fileUrl.size() <= 500)) &&
+             (!('externalUrl' in data) || (data.externalUrl is string && data.externalUrl.size() <= 500)) &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000)) &&
+             (!('submittedAt' in data) || (data.submittedAt is string && data.submittedAt.size() <= 50));
+    }
+
+    function isValidAchievement(data) {
+      return data.userId is string && data.userId == request.auth.uid &&
+             data.competitionName is string && data.competitionName.size() > 0 && data.competitionName.size() <= 150 &&
+             data.result is string && data.result.size() > 0 && data.result.size() <= 100 &&
+             (!('hackathonId' in data) || (data.hackathonId is string && data.hackathonId.size() <= 128)) &&
+             (!('projectName' in data) || (data.projectName is string && data.projectName.size() <= 150)) &&
+             (!('rank' in data) || (data.rank is string && data.rank.size() <= 50)) &&
+             (!('date' in data) || (data.date is string && data.date.size() <= 50)) &&
+             (!('organizer' in data) || (data.organizer is string && data.organizer.size() <= 150)) &&
+             (!('certificateUrl' in data) || (data.certificateUrl is string && data.certificateUrl.size() <= 500)) &&
+             (!('proofUrl' in data) || (data.proofUrl is string && data.proofUrl.size() <= 500)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 2000));
+    }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User Profile
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time;
+      allow update: if isOwner(userId) &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt;
+      allow delete: if isOwner(userId);
+
+      // Hackathons
+      match /hackathons/{hackathonId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(hackathonId) &&
+                         isValidHackathon(incoming()) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time;
+        allow update: if isOwner(userId) &&
+                         isValidId(hackathonId) &&
+                         isValidHackathon(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId) && isValidId(hackathonId);
+      }
+
+      // Tasks
+      match /tasks/{taskId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(taskId) &&
+                         isValidTask(incoming()) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time;
+        allow update: if isOwner(userId) &&
+                         isValidId(taskId) &&
+                         isValidTask(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId) && isValidId(taskId);
+      }
+
+      // Projects
+      match /projects/{projectId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidProject(incoming()) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time;
+        allow update: if isOwner(userId) &&
+                         isValidId(projectId) &&
+                         isValidProject(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId) && isValidId(projectId);
+      }
+
+      // Submissions
+      match /submissions/{submissionId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(submissionId) &&
+                         isValidSubmission(incoming()) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time;
+        allow update: if isOwner(userId) &&
+                         isValidId(submissionId) &&
+                         isValidSubmission(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId) && isValidId(submissionId);
+      }
+
+      // Achievements
+      match /achievements/{achievementId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) &&
+                         isValidId(achievementId) &&
+                         isValidAchievement(incoming()) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time;
+        allow update: if isOwner(userId) &&
+                         isValidId(achievementId) &&
+                         isValidAchievement(incoming()) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt;
+        allow delete: if isOwner(userId) && isValidId(achievementId);
+      }
+    }
+  }
+}
