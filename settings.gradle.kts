@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "HackTrack"
+rootProject.name = "DevSprint"
 
 include(":app")
