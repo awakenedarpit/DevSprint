@@ -37,7 +37,7 @@ import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
-private const val TAG = "HackTrackAuth"
+private const val TAG = "DevSprintAuth"
 
 @Composable
 fun AuthScreen(
@@ -90,7 +90,7 @@ fun AuthScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "HackTrack",
+                text = "DevSprint",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White
