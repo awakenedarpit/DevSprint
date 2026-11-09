@@ -21,7 +21,7 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
-private const val TAG = "HackTrackAi"
+private const val TAG = "DevSprintAi"
 
 class HackTrackAiService {
 
@@ -48,7 +48,7 @@ class HackTrackAiService {
         pendingTasks: List<TaskItem>
     ): Flow<String> = flow {
         val contextBuilder = StringBuilder()
-        contextBuilder.append("You are 'HackTrack AI', an elite hackathon mentor, software architect, and competition strategist.\n")
+        contextBuilder.append("You are 'DevSprint AI', an elite hackathon mentor, software architect, and competition strategist.\n")
         contextBuilder.append("Here is the user's active competition command center data:\n")
 
         if (activeHackathons.isNotEmpty()) {
@@ -101,7 +101,7 @@ class HackTrackAiService {
         val pageText = fetchPageContent(url)
 
         val prompt = """
-            You are HackTrack AI. Extract competition and hackathon metadata from this link and web page content.
+            You are DevSprint AI. Extract competition and hackathon metadata from this link and web page content.
             
             Website URL: $url
             Page Content Snippet:
@@ -209,7 +209,7 @@ class HackTrackAiService {
      */
     suspend fun breakDownProblemStatement(problemStatement: String): String {
         val prompt = """
-            You are HackTrack AI. Break down the following hackathon problem statement into a 48-hour execution sprint plan:
+            You are DevSprint AI. Break down the following hackathon problem statement into a 48-hour execution sprint plan:
             
             Problem Statement:
             "$problemStatement"
@@ -243,7 +243,7 @@ class HackTrackAiService {
      */
     suspend fun generatePitchDeckOutline(projectName: String, problem: String, solution: String): String {
         val prompt = """
-            You are HackTrack AI. Prepare a winning 10-slide Pitch Deck Outline for a hackathon demo:
+            You are DevSprint AI. Prepare a winning 10-slide Pitch Deck Outline for a hackathon demo:
             Project: $projectName
             Problem: $problem
             Solution: $solution
