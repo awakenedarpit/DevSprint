@@ -41,6 +41,8 @@ fun TasksScreen(
     val statusFilter by viewModel.taskStatusFilter.collectAsState()
 
     var isKanbanView by remember { mutableStateOf(false) }
+    var taskToEdit by remember { mutableStateOf<TaskItem?>(null) }
+    var taskToDeleteId by remember { mutableStateOf<String?>(null) }
 
     val priorities = listOf("All", "Critical", "High", "Medium", "Low")
     val statuses = listOf("All", "Backlog", "To Do", "In Progress", "Under Review", "Completed", "Blocked")
@@ -142,8 +144,9 @@ fun TasksScreen(
                         TaskCard(
                             task = task,
                             onToggleComplete = { viewModel.toggleTaskCompletion(task.id) },
-                            onClick = {},
-                            onDelete = { viewModel.deleteTask(task.id) }
+                            onClick = { taskToEdit = task },
+                            onEdit = { taskToEdit = task },
+                            onDelete = { taskToDeleteId = task.id }
                         )
                     }
                 }
@@ -163,13 +166,38 @@ fun TasksScreen(
                             title = statusCol,
                             tasks = colTasks,
                             onToggleComplete = { viewModel.toggleTaskCompletion(it) },
-                            onDeleteTask = { viewModel.deleteTask(it) },
+                            onEditTask = { taskToEdit = it },
+                            onDeleteTask = { taskToDeleteId = it },
                             modifier = Modifier.width(280.dp)
                         )
                     }
                 }
             }
         }
+    }
+
+    if (taskToEdit != null) {
+        com.example.ui.components.EditTaskDialog(
+            task = taskToEdit!!,
+            hackathons = hackathons,
+            onDismiss = { taskToEdit = null },
+            onConfirm = { updated ->
+                viewModel.updateTask(updated)
+                taskToEdit = null
+            }
+        )
+    }
+
+    if (taskToDeleteId != null) {
+        com.example.ui.components.DeleteConfirmationDialog(
+            title = "Delete Task?",
+            message = "Are you sure you want to delete this task?",
+            onDismiss = { taskToDeleteId = null },
+            onConfirm = {
+                viewModel.deleteTask(taskToDeleteId!!)
+                taskToDeleteId = null
+            }
+        )
     }
 }
 
@@ -178,6 +206,7 @@ fun KanbanColumn(
     title: String,
     tasks: List<TaskItem>,
     onToggleComplete: (String) -> Unit,
+    onEditTask: (TaskItem) -> Unit,
     onDeleteTask: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -236,7 +265,8 @@ fun KanbanColumn(
                         TaskCard(
                             task = task,
                             onToggleComplete = { onToggleComplete(task.id) },
-                            onClick = {},
+                            onClick = { onEditTask(task) },
+                            onEdit = { onEditTask(task) },
                             onDelete = { onDeleteTask(task.id) }
                         )
                     }

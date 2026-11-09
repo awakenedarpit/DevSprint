@@ -49,16 +49,19 @@ fun HackathonsScreen(
         }
     }
 
+    var hackathonToEdit by remember { mutableStateOf<Hackathon?>(null) }
+    var hackathonToDeleteId by remember { mutableStateOf<String?>(null) }
+
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = onOpenAddDialog,
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text("Add / Extract URL", fontWeight = FontWeight.Bold) },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary,
                 shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Add Hackathon")
-            }
+            )
         }
     ) { paddingValues ->
         Column(
@@ -126,11 +129,36 @@ fun HackathonsScreen(
                     items(displayedHackathons, key = { it.id }) { hackathon ->
                         HackathonCard(
                             hackathon = hackathon,
-                            onClick = { onNavigateToDetail(hackathon.id) }
+                            onClick = { onNavigateToDetail(hackathon.id) },
+                            onEdit = { hackathonToEdit = hackathon },
+                            onDelete = { hackathonToDeleteId = hackathon.id }
                         )
                     }
                 }
             }
         }
+    }
+
+    if (hackathonToEdit != null) {
+        com.example.ui.components.EditHackathonDialog(
+            hackathon = hackathonToEdit!!,
+            onDismiss = { hackathonToEdit = null },
+            onConfirm = { updated ->
+                viewModel.updateHackathon(updated)
+                hackathonToEdit = null
+            }
+        )
+    }
+
+    if (hackathonToDeleteId != null) {
+        com.example.ui.components.DeleteConfirmationDialog(
+            title = "Delete Hackathon?",
+            message = "Are you sure you want to delete this hackathon competition?",
+            onDismiss = { hackathonToDeleteId = null },
+            onConfirm = {
+                viewModel.deleteHackathon(hackathonToDeleteId!!)
+                hackathonToDeleteId = null
+            }
+        )
     }
 }

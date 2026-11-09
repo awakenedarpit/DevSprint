@@ -43,14 +43,23 @@ class HackTrackRepository(
     private val _achievements = MutableStateFlow<List<Achievement>>(emptyList())
     val achievements: StateFlow<List<Achievement>> = _achievements.asStateFlow()
 
+    private val _customDeadlines = MutableStateFlow<List<CustomDeadline>>(emptyList())
+    val customDeadlines: StateFlow<List<CustomDeadline>> = _customDeadlines.asStateFlow()
+
     private val _userProfile = MutableStateFlow(UserProfile(userId = auth.currentUser?.uid ?: "guest"))
     val userProfile: StateFlow<UserProfile> = _userProfile.asStateFlow()
 
     private val _isSyncing = MutableStateFlow(false)
     val isSyncing: StateFlow<Boolean> = _isSyncing.asStateFlow()
 
+    private val _themeMode = MutableStateFlow(com.example.ui.theme.ThemeMode.SYSTEM)
+    val themeMode: StateFlow<com.example.ui.theme.ThemeMode> = _themeMode.asStateFlow()
+
+    private val _isGoogleCalendarSyncEnabled = MutableStateFlow(true)
+    val isGoogleCalendarSyncEnabled: StateFlow<Boolean> = _isGoogleCalendarSyncEnabled.asStateFlow()
+
     init {
-        // Load initial local/sample baseline
+        // Start clean with no demo data
         loadBaselineData(auth.currentUser?.uid ?: "guest_user")
 
         // Listen to Auth state changes to synchronize with Firestore
@@ -65,16 +74,40 @@ class HackTrackRepository(
     }
 
     private fun loadBaselineData(userId: String) {
-        _hackathons.value = SampleDataProvider.getDefaultHackathons(userId)
-        _tasks.value = SampleDataProvider.getDefaultTasks(userId)
-        _projects.value = SampleDataProvider.getDefaultProjects(userId)
-        _submissions.value = SampleDataProvider.getDefaultSubmissions(userId)
-        _achievements.value = SampleDataProvider.getDefaultAchievements(userId)
+        _hackathons.value = emptyList()
+        _tasks.value = emptyList()
+        _projects.value = emptyList()
+        _submissions.value = emptyList()
+        _achievements.value = emptyList()
+        _customDeadlines.value = emptyList()
         _userProfile.value = UserProfile(
             userId = userId,
-            name = auth.currentUser?.displayName?.takeIf { it.isNotBlank() } ?: "Arpit Raj",
-            email = auth.currentUser?.email ?: "raj2010arpit@gmail.com"
+            name = auth.currentUser?.displayName?.takeIf { it.isNotBlank() } ?: "Student Hacker",
+            email = auth.currentUser?.email ?: ""
         )
+    }
+
+    fun setThemeMode(mode: com.example.ui.theme.ThemeMode) {
+        _themeMode.value = mode
+    }
+
+    fun setGoogleCalendarSyncEnabled(enabled: Boolean) {
+        _isGoogleCalendarSyncEnabled.value = enabled
+    }
+
+    fun loadSampleData() {
+        val uid = auth.currentUser?.uid ?: "guest_user"
+        _hackathons.value = SampleDataProvider.getDefaultHackathons(uid)
+        _tasks.value = SampleDataProvider.getDefaultTasks(uid)
+        _projects.value = SampleDataProvider.getDefaultProjects(uid)
+        _submissions.value = SampleDataProvider.getDefaultSubmissions(uid)
+        _achievements.value = SampleDataProvider.getDefaultAchievements(uid)
+        _customDeadlines.value = SampleDataProvider.getDefaultDeadlines(uid)
+    }
+
+    fun clearAllData() {
+        val uid = auth.currentUser?.uid ?: "guest_user"
+        loadBaselineData(uid)
     }
 
     fun syncWithFirestore(uid: String) {
@@ -195,6 +228,35 @@ class HackTrackRepository(
                 Log.e(TAG, "Failed to delete hackathon: ${e.message}")
             }
         }
+    }
+
+    // --- Hackathon Round Operations ---
+    suspend fun addRoundToHackathon(hackathonId: String, round: HackathonRound) {
+        val target = _hackathons.value.firstOrNull { it.id == hackathonId } ?: return
+        val newRoundId = if (round.id.isNotBlank()) round.id else "rnd_" + UUID.randomUUID().toString().take(8)
+        val newRound = round.copy(id = newRoundId, hackathonId = hackathonId)
+        val updatedRounds = target.rounds + newRound
+        updateHackathon(target.copy(rounds = updatedRounds))
+    }
+
+    suspend fun updateRoundInHackathon(hackathonId: String, round: HackathonRound) {
+        val target = _hackathons.value.firstOrNull { it.id == hackathonId } ?: return
+        val updatedRounds = target.rounds.map { if (it.id == round.id) round else it }
+        updateHackathon(target.copy(rounds = updatedRounds))
+    }
+
+    suspend fun deleteRoundFromHackathon(hackathonId: String, roundId: String) {
+        val target = _hackathons.value.firstOrNull { it.id == hackathonId } ?: return
+        val updatedRounds = target.rounds.filter { it.id != roundId }
+        updateHackathon(target.copy(rounds = updatedRounds))
+    }
+
+    suspend fun toggleRoundCompletion(hackathonId: String, roundId: String) {
+        val target = _hackathons.value.firstOrNull { it.id == hackathonId } ?: return
+        val updatedRounds = target.rounds.map {
+            if (it.id == roundId) it.copy(isCompleted = !it.isCompleted) else it
+        }
+        updateHackathon(target.copy(rounds = updatedRounds))
     }
 
     // --- Task Operations ---
@@ -412,6 +474,75 @@ class HackTrackRepository(
                 Log.e(TAG, "Failed to update profile: ${e.message}")
             }
         }
+    }
+
+    suspend fun deleteProject(id: String) {
+        val uid = auth.currentUser?.uid ?: "guest_user"
+        _projects.update { list -> list.filter { it.id != id } }
+        if (auth.currentUser != null) {
+            try {
+                firestore.collection("users").document(uid)
+                    .collection("projects").document(id).delete().await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to delete project: ${e.message}")
+            }
+        }
+    }
+
+    suspend fun deleteSubmission(id: String) {
+        val uid = auth.currentUser?.uid ?: "guest_user"
+        _submissions.update { list -> list.filter { it.id != id } }
+        if (auth.currentUser != null) {
+            try {
+                firestore.collection("users").document(uid)
+                    .collection("submissions").document(id).delete().await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to delete submission: ${e.message}")
+            }
+        }
+    }
+
+    suspend fun updateAchievement(achievement: Achievement) {
+        val uid = auth.currentUser?.uid ?: "guest_user"
+        _achievements.update { list -> list.map { if (it.id == achievement.id) achievement else it } }
+        if (auth.currentUser != null) {
+            try {
+                firestore.collection("users").document(uid)
+                    .collection("achievements").document(achievement.id)
+                    .set(achievement.copy(updatedAt = null)).await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to update achievement: ${e.message}")
+            }
+        }
+    }
+
+    suspend fun deleteAchievement(id: String) {
+        val uid = auth.currentUser?.uid ?: "guest_user"
+        _achievements.update { list -> list.filter { it.id != id } }
+        if (auth.currentUser != null) {
+            try {
+                firestore.collection("users").document(uid)
+                    .collection("achievements").document(id).delete().await()
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to delete achievement: ${e.message}")
+            }
+        }
+    }
+
+    // --- Custom Deadline Operations ---
+    suspend fun addCustomDeadline(deadline: CustomDeadline) {
+        val uid = auth.currentUser?.uid ?: "guest_user"
+        val id = if (deadline.id.isNotBlank()) deadline.id else "dl_" + UUID.randomUUID().toString().take(8)
+        val newItem = deadline.copy(id = id, userId = uid)
+        _customDeadlines.update { listOf(newItem) + it }
+    }
+
+    suspend fun updateCustomDeadline(deadline: CustomDeadline) {
+        _customDeadlines.update { list -> list.map { if (it.id == deadline.id) deadline else it } }
+    }
+
+    suspend fun deleteCustomDeadline(id: String) {
+        _customDeadlines.update { list -> list.filter { it.id != id } }
     }
 
     fun resetToSampleData() {

@@ -42,6 +42,7 @@ data class Hackathon(
     val finalEventDate: String = "",
     val prizeInfo: String = "$10,000 Pool",
     val isArchived: Boolean = false,
+    val rounds: List<HackathonRound> = emptyList(),
     @ServerTimestamp val createdAt: Timestamp? = null,
     @ServerTimestamp val updatedAt: Timestamp? = null
 )
@@ -55,6 +56,21 @@ data class HackathonRound(
     val roundDate: String = "",
     val isCompleted: Boolean = false,
     val notes: String = ""
+)
+
+@IgnoreExtraProperties
+data class CustomDeadline(
+    @DocumentId val id: String = "",
+    val userId: String = "",
+    val hackathonId: String = "",
+    val title: String = "",
+    val competitionName: String = "",
+    val date: String = "",
+    val type: String = "Submission Deadline",
+    val isCritical: Boolean = false,
+    val notes: String = "",
+    @ServerTimestamp val createdAt: Timestamp? = null,
+    @ServerTimestamp val updatedAt: Timestamp? = null
 )
 
 @IgnoreExtraProperties

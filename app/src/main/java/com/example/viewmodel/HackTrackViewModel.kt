@@ -17,6 +17,7 @@ class HackTrackViewModel(application: Application) : AndroidViewModel(applicatio
     val projects: StateFlow<List<Project>> = repository.projects
     val submissions: StateFlow<List<SubmissionItem>> = repository.submissions
     val achievements: StateFlow<List<Achievement>> = repository.achievements
+    val customDeadlines: StateFlow<List<CustomDeadline>> = repository.customDeadlines
     val userProfile: StateFlow<UserProfile> = repository.userProfile
     val isSyncing: StateFlow<Boolean> = repository.isSyncing
 
@@ -157,6 +158,50 @@ class HackTrackViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    private val aiService = com.example.ai.HackTrackAiService()
+
+    val themeMode: StateFlow<com.example.ui.theme.ThemeMode> = repository.themeMode
+    val isGoogleCalendarSyncEnabled: StateFlow<Boolean> = repository.isGoogleCalendarSyncEnabled
+
+    private val _isExtractingUrl = MutableStateFlow(false)
+    val isExtractingUrl: StateFlow<Boolean> = _isExtractingUrl.asStateFlow()
+
+    fun setThemeMode(mode: com.example.ui.theme.ThemeMode) {
+        repository.setThemeMode(mode)
+    }
+
+    fun setGoogleCalendarSyncEnabled(enabled: Boolean) {
+        repository.setGoogleCalendarSyncEnabled(enabled)
+    }
+
+    fun extractHackathonFromUrl(
+        url: String,
+        onSuccess: (Hackathon) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        if (url.isBlank()) {
+            onError("Please enter a valid website link.")
+            return
+        }
+        _isExtractingUrl.value = true
+        viewModelScope.launch {
+            try {
+                val extracted = aiService.extractHackathonFromUrl(url.trim())
+                _isExtractingUrl.value = false
+                onSuccess(extracted)
+            } catch (e: Exception) {
+                _isExtractingUrl.value = false
+                onError(e.localizedMessage ?: "Failed to extract hackathon details.")
+            }
+        }
+    }
+
+    fun deleteProject(id: String) {
+        viewModelScope.launch {
+            repository.deleteProject(id)
+        }
+    }
+
     fun addSubmission(submission: SubmissionItem) {
         viewModelScope.launch {
             repository.addSubmission(submission)
@@ -169,9 +214,71 @@ class HackTrackViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun deleteSubmission(id: String) {
+        viewModelScope.launch {
+            repository.deleteSubmission(id)
+        }
+    }
+
     fun addAchievement(achievement: Achievement) {
         viewModelScope.launch {
             repository.addAchievement(achievement)
+        }
+    }
+
+    fun updateAchievement(achievement: Achievement) {
+        viewModelScope.launch {
+            repository.updateAchievement(achievement)
+        }
+    }
+
+    fun deleteAchievement(id: String) {
+        viewModelScope.launch {
+            repository.deleteAchievement(id)
+        }
+    }
+
+    // Round operations
+    fun addRound(hackathonId: String, round: HackathonRound) {
+        viewModelScope.launch {
+            repository.addRoundToHackathon(hackathonId, round)
+        }
+    }
+
+    fun updateRound(hackathonId: String, round: HackathonRound) {
+        viewModelScope.launch {
+            repository.updateRoundInHackathon(hackathonId, round)
+        }
+    }
+
+    fun deleteRound(hackathonId: String, roundId: String) {
+        viewModelScope.launch {
+            repository.deleteRoundFromHackathon(hackathonId, roundId)
+        }
+    }
+
+    fun toggleRoundCompletion(hackathonId: String, roundId: String) {
+        viewModelScope.launch {
+            repository.toggleRoundCompletion(hackathonId, roundId)
+        }
+    }
+
+    // Custom deadline operations
+    fun addCustomDeadline(deadline: CustomDeadline) {
+        viewModelScope.launch {
+            repository.addCustomDeadline(deadline)
+        }
+    }
+
+    fun updateCustomDeadline(deadline: CustomDeadline) {
+        viewModelScope.launch {
+            repository.updateCustomDeadline(deadline)
+        }
+    }
+
+    fun deleteCustomDeadline(id: String) {
+        viewModelScope.launch {
+            repository.deleteCustomDeadline(id)
         }
     }
 
@@ -179,6 +286,14 @@ class HackTrackViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             repository.updateProfile(profile)
         }
+    }
+
+    fun clearAllData() {
+        repository.clearAllData()
+    }
+
+    fun loadSampleData() {
+        repository.loadSampleData()
     }
 
     fun resetToSampleData() {

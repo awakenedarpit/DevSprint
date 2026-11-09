@@ -25,7 +25,12 @@ object SampleDataProvider {
             submissionDeadline = "Nov 14, 2026",
             finalEventDate = "Nov 16, 2026",
             prizeInfo = "$25,000 USD + Cloud Credits",
-            isArchived = false
+            isArchived = false,
+            rounds = listOf(
+                HackathonRound(id = "rnd_1", hackathonId = "hack_brand_sentinel", title = "Abstract & Idea Submission", roundOrder = 1, roundDate = "Oct 25, 2026", isCompleted = true, notes = "Selected in top 50"),
+                HackathonRound(id = "rnd_2", hackathonId = "hack_brand_sentinel", title = "Prototype & Code Drop", roundOrder = 2, roundDate = "Nov 14, 2026", isCompleted = false, notes = "Must submit working repo & demo video"),
+                HackathonRound(id = "rnd_3", hackathonId = "hack_brand_sentinel", title = "Grand Finale Live Demo", roundOrder = 3, roundDate = "Nov 16, 2026", isCompleted = false, notes = "10 min live jury presentation")
+            )
         ),
         Hackathon(
             id = "hack_carebridge",
@@ -46,7 +51,12 @@ object SampleDataProvider {
             submissionDeadline = "Nov 20, 2026",
             finalEventDate = "Nov 25, 2026",
             prizeInfo = "$15,000 Prize + Pilot Grant",
-            isArchived = false
+            isArchived = false,
+            rounds = listOf(
+                HackathonRound(id = "rnd_cb_1", hackathonId = "hack_carebridge", title = "Round 1: Screening Abstract", roundOrder = 1, roundDate = "Oct 15, 2026", isCompleted = true, notes = "Approved"),
+                HackathonRound(id = "rnd_cb_2", hackathonId = "hack_carebridge", title = "Round 2: Semi-Finalist Demo", roundOrder = 2, roundDate = "Nov 10, 2026", isCompleted = true, notes = "Advanced to Grand Finalist"),
+                HackathonRound(id = "rnd_cb_3", hackathonId = "hack_carebridge", title = "Grand Finale Jury Pitch", roundOrder = 3, roundDate = "Nov 25, 2026", isCompleted = false, notes = "Final investor & NGO jury")
+            )
         ),
         Hackathon(
             id = "hack_edudrishti",
@@ -318,6 +328,42 @@ object SampleDataProvider {
             role = "Backend & Cloud Engineer",
             skills = "Go, Cloud Run, Firestore, Docker, Python",
             responsibilities = "High-throughput data scrapers and API reliability"
+        )
+    )
+
+    fun getDefaultDeadlines(userId: String): List<CustomDeadline> = listOf(
+        CustomDeadline(
+            id = "dl_1",
+            userId = userId,
+            hackathonId = "hack_brand_sentinel",
+            title = "Final Code Freeze & Video Upload",
+            competitionName = "NexGen Tech Sprint 2026",
+            date = "Nov 14, 2026",
+            type = "Submission Deadline",
+            isCritical = true,
+            notes = "Unlisted YouTube video link required in Devpost submission form."
+        ),
+        CustomDeadline(
+            id = "dl_2",
+            userId = userId,
+            hackathonId = "hack_brand_sentinel",
+            title = "Grand Finale Pitch Rehearsal",
+            competitionName = "NexGen Tech Sprint 2026",
+            date = "Nov 15, 2026",
+            type = "Round Presentation",
+            isCritical = false,
+            notes = "Test screen share and audio in Discord stage channel."
+        ),
+        CustomDeadline(
+            id = "dl_3",
+            userId = userId,
+            hackathonId = "hack_carebridge",
+            title = "Finalist Live Jury Presentation",
+            competitionName = "HealthHacks International",
+            date = "Nov 25, 2026",
+            type = "Round Presentation",
+            isCritical = true,
+            notes = "Present offline triage prototype to clinical judges."
         )
     )
 }

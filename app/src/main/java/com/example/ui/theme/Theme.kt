@@ -11,6 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+enum class ThemeMode {
+    SYSTEM, LIGHT, DARK
+}
+
 private val DarkColorScheme = darkColorScheme(
     primary = HackTrackPrimaryDark,
     onPrimary = Color(0xFF19134D),
@@ -51,10 +55,16 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun HackTrackTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Keep HackTrack signature branding by default
+    themeMode: ThemeMode = ThemeMode.SYSTEM,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (themeMode) {
+        ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        ThemeMode.DARK -> true
+        ThemeMode.LIGHT -> false
+    }
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current

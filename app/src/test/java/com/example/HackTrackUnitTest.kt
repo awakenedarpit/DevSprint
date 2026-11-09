@@ -55,4 +55,42 @@ class HackTrackUnitTest {
         assertTrue(stats.pendingTasks >= 3)
         assertTrue(stats.totalWins >= 1)
     }
+
+    @Test
+    fun testEmptyStateDashboardStatsComputation() {
+        val stats = DashboardStats()
+        assertEquals(0, stats.totalHackathons)
+        assertEquals(0, stats.activeHackathons)
+        assertEquals(0, stats.pendingTasks)
+        assertEquals(0, stats.completedSubmissions)
+        assertEquals(0, stats.totalWins)
+    }
+
+    @Test
+    fun testDateUtilsParsingAndBadge() {
+        val testDate = "Nov 14, 2026"
+        val parsed = com.example.util.DateUtils.parseDate(testDate)
+        assertNotNull(parsed)
+
+        val badge = com.example.util.DateUtils.getBadgeInfo("Nov 14, 2026")
+        assertNotNull(badge.label)
+        assertTrue(badge.label.isNotBlank())
+    }
+
+    @Test
+    fun testHackathonRoundsAndDeadlinesIntegrity() {
+        val testUid = "user_abc"
+        val hackathons = SampleDataProvider.getDefaultHackathons(testUid)
+        val firstHack = hackathons.first()
+        assertTrue(firstHack.rounds.isNotEmpty())
+        assertEquals(3, firstHack.rounds.size)
+
+        val deadlines = SampleDataProvider.getDefaultDeadlines(testUid)
+        assertTrue(deadlines.isNotEmpty())
+        deadlines.forEach { dl ->
+            assertEquals(testUid, dl.userId)
+            assertTrue(dl.title.isNotBlank())
+            assertTrue(dl.date.isNotBlank())
+        }
+    }
 }

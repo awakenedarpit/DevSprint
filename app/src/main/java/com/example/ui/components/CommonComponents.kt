@@ -9,7 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -131,8 +131,13 @@ fun StatCard(
 fun HackathonCard(
     hackathon: Hackathon,
     onClick: () -> Unit,
+    onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    var menuExpanded by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    val badgeInfo = com.example.util.DateUtils.getBadgeInfo(hackathon.submissionDeadline)
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -149,17 +154,67 @@ fun HackathonCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                StatusBadge(status = hackathon.status)
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    shape = RoundedCornerShape(6.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = hackathon.mode,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    StatusBadge(status = hackathon.status)
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = hackathon.mode,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                if (onEdit != null || onDelete != null) {
+                    Box {
+                        IconButton(
+                            onClick = { menuExpanded = true },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Options",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = menuExpanded,
+                            onDismissRequest = { menuExpanded = false }
+                        ) {
+                            if (onEdit != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Edit Hackathon") },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onEdit()
+                                    }
+                                )
+                            }
+                            if (onDelete != null) {
+                                DropdownMenuItem(
+                                    text = { Text("Delete Hackathon", color = MaterialTheme.colorScheme.error) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+                                    },
+                                    onClick = {
+                                        menuExpanded = false
+                                        onDelete()
+                                    }
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -196,7 +251,7 @@ fun HackathonCard(
 
             HorizontalDivider(
                 modifier = Modifier.padding(vertical = 6.dp),
-                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
             )
 
             Row(
@@ -208,7 +263,7 @@ fun HackathonCard(
                     Icon(
                         imageVector = Icons.Default.Event,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(15.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(4.dp))
@@ -219,20 +274,30 @@ fun HackathonCard(
                     )
                 }
 
-                if (hackathon.prizeInfo.isNotBlank()) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.EmojiEvents,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp),
-                            tint = HackTrackWarning
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
+                if (hackathon.submissionDeadline.isNotBlank()) {
+                    val chipBg = when (badgeInfo.severity) {
+                        com.example.util.DeadlineBadgeSeverity.CRITICAL -> HackTrackDanger.copy(alpha = 0.15f)
+                        com.example.util.DeadlineBadgeSeverity.WARNING -> HackTrackWarning.copy(alpha = 0.15f)
+                        com.example.util.DeadlineBadgeSeverity.OVERDUE -> Color.Gray.copy(alpha = 0.15f)
+                        else -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
+                    }
+                    val chipText = when (badgeInfo.severity) {
+                        com.example.util.DeadlineBadgeSeverity.CRITICAL -> HackTrackDanger
+                        com.example.util.DeadlineBadgeSeverity.WARNING -> Color(0xFFB45309)
+                        com.example.util.DeadlineBadgeSeverity.OVERDUE -> Color.Gray
+                        else -> MaterialTheme.colorScheme.primary
+                    }
+
+                    Surface(
+                        color = chipBg,
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
                         Text(
-                            text = hackathon.prizeInfo,
+                            text = badgeInfo.label,
                             style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = HackTrackWarning
+                            fontWeight = FontWeight.Bold,
+                            color = chipText,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                     }
                 }
@@ -246,6 +311,7 @@ fun TaskCard(
     task: TaskItem,
     onToggleComplete: () -> Unit,
     onClick: () -> Unit,
+    onEdit: (() -> Unit)? = null,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -277,20 +343,14 @@ fun TaskCard(
             Spacer(modifier = Modifier.width(8.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = task.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (task.status == "Completed") MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Text(
+                    text = task.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (task.status == "Completed") MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
 
                 if (task.description.isNotBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
@@ -330,16 +390,211 @@ fun TaskCard(
                 }
             }
 
-            IconButton(
-                onClick = onDelete,
-                modifier = Modifier.size(32.dp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onEdit != null) {
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Task",
+                            tint = MaterialTheme.colorScheme.outline,
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
+                }
+                IconButton(
+                    onClick = onDelete,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = "Delete Task",
+                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                        modifier = Modifier.size(17.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DeadlineCard(
+    title: String,
+    competitionName: String,
+    dateStr: String,
+    type: String,
+    isCritical: Boolean = false,
+    notes: String = "",
+    onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null,
+    onAddToCalendar: (() -> Unit)? = null,
+    modifier: Modifier = Modifier
+) {
+    val badgeInfo = com.example.util.DateUtils.getBadgeInfo(dateStr)
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.DeleteOutline,
-                    contentDescription = "Delete Task",
-                    tint = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.size(18.dp)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = type,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                    if (isCritical) {
+                        Surface(
+                            color = HackTrackDanger.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = "Critical ⚠️",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = HackTrackDanger,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Countdown badge
+                val (chipBg, chipText) = when (badgeInfo.severity) {
+                    com.example.util.DeadlineBadgeSeverity.CRITICAL -> HackTrackDanger.copy(alpha = 0.15f) to HackTrackDanger
+                    com.example.util.DeadlineBadgeSeverity.WARNING -> HackTrackWarning.copy(alpha = 0.15f) to Color(0xFFB45309)
+                    com.example.util.DeadlineBadgeSeverity.OVERDUE -> Color.Gray.copy(alpha = 0.15f) to Color.DarkGray
+                    else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+                }
+                Surface(
+                    color = chipBg,
+                    shape = RoundedCornerShape(6.dp)
+                ) {
+                    Text(
+                        text = badgeInfo.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = chipText,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Text(
+                text = competitionName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Medium
+            )
+
+            if (notes.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = notes,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Event,
+                        contentDescription = null,
+                        modifier = Modifier.size(15.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = dateStr,
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (onAddToCalendar != null) {
+                        IconButton(
+                            onClick = onAddToCalendar,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarToday,
+                                contentDescription = "Add to Google Calendar",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    if (onEdit != null) {
+                        IconButton(
+                            onClick = onEdit,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit Deadline",
+                                tint = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    if (onDelete != null) {
+                        IconButton(
+                            onClick = onDelete,
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = "Delete Deadline",
+                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }

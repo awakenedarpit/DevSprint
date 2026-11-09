@@ -6,13 +6,17 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.model.Hackathon
@@ -21,6 +25,7 @@ import com.example.ui.components.AddHackathonDialog
 import com.example.ui.components.AddTaskDialog
 import com.example.ui.screens.*
 import com.example.ui.theme.HackTrackTheme
+import com.example.ui.theme.ThemeMode
 import com.example.util.configureAppCheck
 import com.example.viewmodel.AiAssistantViewModel
 import com.example.viewmodel.HackTrackViewModel
@@ -49,12 +54,15 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            HackTrackTheme {
+            val hackTrackViewModel: HackTrackViewModel = viewModel()
+            val themeMode by hackTrackViewModel.themeMode.collectAsState()
+
+            HackTrackTheme(themeMode = themeMode) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppRoot()
+                    AppRoot(hackTrackViewModel = hackTrackViewModel)
                 }
             }
         }
@@ -62,7 +70,7 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun AppRoot() {
+fun AppRoot(hackTrackViewModel: HackTrackViewModel) {
     var currentUser by remember { mutableStateOf(Firebase.auth.currentUser) }
     var isGuestMode by remember { mutableStateOf(false) }
 
@@ -87,6 +95,7 @@ fun AppRoot() {
         )
     } else {
         MainAppContent(
+            hackTrackViewModel = hackTrackViewModel,
             onSignOut = {
                 currentUser = null
                 isGuestMode = false
@@ -97,9 +106,12 @@ fun AppRoot() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainAppContent(onSignOut: () -> Unit) {
-    val hackTrackViewModel: HackTrackViewModel = viewModel()
+fun MainAppContent(
+    hackTrackViewModel: HackTrackViewModel,
+    onSignOut: () -> Unit
+) {
     val aiViewModel: AiAssistantViewModel = viewModel()
+    val themeMode by hackTrackViewModel.themeMode.collectAsState()
 
     var currentDestination by remember { mutableStateOf(NavDestination.HOME) }
     var viewingHackathonId by remember { mutableStateOf<String?>(null) }
@@ -142,6 +154,44 @@ fun MainAppContent(onSignOut: () -> Unit) {
 
             Scaffold(
                 modifier = Modifier.weight(1f),
+                topBar = {
+                    TopAppBar(
+                        title = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = if (viewingHackathonId != null) "Workspace" else currentDestination.label,
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        },
+                        actions = {
+                            // Quick Theme Mode Toggle Button
+                            IconButton(
+                                onClick = {
+                                    val nextMode = when (themeMode) {
+                                        ThemeMode.LIGHT -> ThemeMode.DARK
+                                        ThemeMode.DARK -> ThemeMode.SYSTEM
+                                        ThemeMode.SYSTEM -> ThemeMode.LIGHT
+                                    }
+                                    hackTrackViewModel.setThemeMode(nextMode)
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = when (themeMode) {
+                                        ThemeMode.LIGHT -> Icons.Default.LightMode
+                                        ThemeMode.DARK -> Icons.Default.DarkMode
+                                        ThemeMode.SYSTEM -> Icons.Default.BrightnessAuto
+                                    },
+                                    contentDescription = "Toggle Theme"
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
+                    )
+                },
                 bottomBar = {
                     if (!isTablet && viewingHackathonId == null) {
                         NavigationBar(
@@ -186,6 +236,7 @@ fun MainAppContent(onSignOut: () -> Unit) {
                                 viewModel = hackTrackViewModel,
                                 onNavigateToHackathonDetail = { id -> viewingHackathonId = id },
                                 onNavigateToTasks = { currentDestination = NavDestination.TASKS },
+                                onNavigateToCalendar = { currentDestination = NavDestination.CALENDAR },
                                 onNavigateToAiAssistant = { currentDestination = NavDestination.AI },
                                 onOpenAddHackathonDialog = { showAddHackathonDialog = true },
                                 onOpenAddTaskDialog = {
@@ -234,6 +285,9 @@ fun MainAppContent(onSignOut: () -> Unit) {
             onConfirm = { newHack ->
                 hackTrackViewModel.addHackathon(newHack)
                 showAddHackathonDialog = false
+            },
+            onExtractFromUrl = { url, onSuccess, onError ->
+                hackTrackViewModel.extractHackathonFromUrl(url, onSuccess, onError)
             }
         )
     }
