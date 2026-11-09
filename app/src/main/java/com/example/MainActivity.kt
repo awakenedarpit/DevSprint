@@ -38,7 +38,7 @@ enum class NavDestination(val label: String, val selectedIcon: ImageVector, val 
     HACKATHONS("Hackathons", Icons.Filled.RocketLaunch, Icons.Outlined.RocketLaunch),
     TASKS("Tasks", Icons.Filled.Checklist, Icons.Outlined.Checklist),
     CALENDAR("Calendar", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
-    AI("HackTrack AI", Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome),
+    AI("DevSprint AI", Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome),
     ACHIEVEMENTS("Trophies", Icons.Filled.EmojiEvents, Icons.Outlined.EmojiEvents),
     PROFILE("Profile", Icons.Filled.Person, Icons.Outlined.Person)
 }
