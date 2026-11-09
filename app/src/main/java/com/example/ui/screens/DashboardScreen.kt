@@ -172,7 +172,7 @@ fun DashboardScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = "HackTrack AI",
+                                    contentDescription = "DevSprint AI",
                                     tint = Color.White
                                 )
                             }
@@ -536,7 +536,7 @@ fun DashboardScreen(
                             color = HackTrackOnPrimaryContainer
                         )
                         Text(
-                            text = "Let HackTrack AI break down problem statements or outline your pitch deck.",
+                            text = "Let DevSprint AI break down problem statements or outline your pitch deck.",
                             style = MaterialTheme.typography.bodySmall,
                             color = HackTrackOnPrimaryContainer.copy(alpha = 0.8f)
                         )
