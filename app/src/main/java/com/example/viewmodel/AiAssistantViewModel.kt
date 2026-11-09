@@ -29,7 +29,7 @@ class AiAssistantViewModel : ViewModel() {
         listOf(
             ChatMessage(
                 sender = "ai",
-                content = "👋 **Welcome to HackTrack AI!** I am your hackathon mentor, architect, and strategy engine.\n\nAsk me to:\n- ⚡ **Break down problem statements** into MVP features\n- ⏱️ **Generate a 48-Hour sprint roadmap**\n- 📑 **Review and outline your pitch deck**\n- 🎯 **Prioritize your weekly submissions and deadlines**"
+                content = "👋 **Welcome to DevSprint AI!** I am your hackathon mentor, architect, and strategy engine.\n\nAsk me to:\n- ⚡ **Break down problem statements** into MVP features\n- ⏱️ **Generate a 48-Hour sprint roadmap**\n- 📑 **Review and outline your pitch deck**\n- 🎯 **Prioritize your weekly submissions and deadlines**"
             )
         )
     )
