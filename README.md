@@ -4,7 +4,7 @@ Your personal hackathon command centre — manage competitions, tasks, timelines
 
 ## Android APK
 
-This repository contains a native Android application built with Kotlin and Jetpack Compose.
+This repository contains a native Android application built with Kotlin and Jetpack Compose. Android command-line tools are provisioned directly in CI from Google's official SDK tools distribution.
 
 Every push, pull request, or manual workflow run builds a debug APK using GitHub Actions.
 
