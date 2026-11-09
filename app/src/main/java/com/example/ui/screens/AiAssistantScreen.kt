@@ -82,7 +82,7 @@ fun AiAssistantScreen(
                         Spacer(modifier = Modifier.width(10.dp))
                         Column {
                             Text(
-                                text = "HackTrack AI",
+                                text = "DevSprint AI",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -165,7 +165,7 @@ fun AiAssistantScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "HackTrack AI is strategizing...",
+                                text = "DevSprint AI is strategizing...",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -247,7 +247,7 @@ fun ChatBubble(
             modifier = Modifier.padding(bottom = 4.dp)
         ) {
             Text(
-                text = if (isUser) "You" else "HackTrack AI",
+                text = if (isUser) "You" else "DevSprint AI",
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = if (isUser) MaterialTheme.colorScheme.primary else HackTrackPrimary
