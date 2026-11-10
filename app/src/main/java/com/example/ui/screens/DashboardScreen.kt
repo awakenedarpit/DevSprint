@@ -27,6 +27,7 @@ import com.example.model.Hackathon
 import com.example.model.TaskItem
 import com.example.ui.components.*
 import com.example.ui.theme.*
+import com.example.util.CareerMilestoneEngine
 import com.example.util.DateUtils
 import com.example.viewmodel.HackTrackViewModel
 
@@ -36,6 +37,8 @@ fun DashboardScreen(
     onNavigateToHackathonDetail: (String) -> Unit,
     onNavigateToTasks: () -> Unit,
     onNavigateToCalendar: () -> Unit,
+    onNavigateToAnalytics: () -> Unit,
+    onNavigateToAchievements: () -> Unit,
     onNavigateToAiAssistant: () -> Unit,
     onOpenAddHackathonDialog: () -> Unit,
     onOpenAddTaskDialog: () -> Unit
@@ -45,6 +48,8 @@ fun DashboardScreen(
     val tasks by viewModel.tasks.collectAsState()
     val customDeadlines by viewModel.customDeadlines.collectAsState()
     val profile by viewModel.userProfile.collectAsState()
+    val submissions by viewModel.submissions.collectAsState()
+    val achievements by viewModel.achievements.collectAsState()
 
     var hackathonToEdit by remember { mutableStateOf<Hackathon?>(null) }
     var hackathonToDeleteId by remember { mutableStateOf<String?>(null) }
@@ -53,6 +58,15 @@ fun DashboardScreen(
     var taskToDeleteId by remember { mutableStateOf<String?>(null) }
 
     var showAddDeadlineDialog by remember { mutableStateOf(false) }
+
+    val careerSummary = remember(hackathons, tasks, submissions, achievements) {
+        CareerMilestoneEngine.calculateCareerProgress(
+            hackathons = hackathons,
+            tasks = tasks,
+            submissions = submissions,
+            achievements = achievements
+        )
+    }
 
     val activeHackathons = remember(hackathons) {
         hackathons.filter { it.status in listOf("Building", "Registered", "Finalist", "Shortlisted") && !it.isArchived }
@@ -110,6 +124,13 @@ fun DashboardScreen(
             }
         }
         list.sortedBy { DateUtils.getDaysRemaining(it.date) ?: 999 }.take(4)
+    }
+
+    val nextUpcomingDeadline = remember(upcomingDeadlines) {
+        upcomingDeadlines.firstOrNull {
+            val days = DateUtils.getDaysRemaining(it.date)
+            days != null && days >= 0
+        } ?: upcomingDeadlines.firstOrNull()
     }
 
     LazyColumn(
@@ -172,7 +193,7 @@ fun DashboardScreen(
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = "HackTrack AI",
+                                    contentDescription = "Dev Sprint AI",
                                     tint = Color.White
                                 )
                             }
@@ -217,6 +238,122 @@ fun DashboardScreen(
                                 Text("Add Task")
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        // A.2 Real-time Animated Countdown Timer for Next Upcoming Hackathon Deadline
+        if (nextUpcomingDeadline != null) {
+            item {
+                LiveHackathonCountdownTimer(
+                    competitionName = nextUpcomingDeadline.competition,
+                    deadlineTitle = nextUpcomingDeadline.title,
+                    deadlineDateStr = nextUpcomingDeadline.date,
+                    onActionClick = {
+                        if (nextUpcomingDeadline.hackathonId != null) {
+                            onNavigateToHackathonDetail(nextUpcomingDeadline.hackathonId)
+                        } else {
+                            onNavigateToCalendar()
+                        }
+                    },
+                    actionButtonText = if (nextUpcomingDeadline.hackathonId != null) "Open Competition Workspace" else "View in Calendar"
+                )
+            }
+        }
+
+        // A.3 Career & Milestone Tracker Spotlight Card
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToAchievements() },
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFFEAB308).copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MilitaryTech,
+                                    contentDescription = null,
+                                    tint = Color(0xFFD97706),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Career & Milestone Tracker",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "${careerSummary.rankTitle} • Level ${careerSummary.rankLevel} (${careerSummary.totalXp} XP)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "View Milestones",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Mini Badges unlock row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            careerSummary.badges.take(4).forEach { b ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(30.dp)
+                                        .clip(CircleShape)
+                                        .background(if (b.isUnlocked) b.badgeColor.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = b.icon,
+                                        contentDescription = b.title,
+                                        tint = if (b.isUnlocked) b.badgeColor else MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        Text(
+                            text = "${careerSummary.badges.count { it.isUnlocked }}/${careerSummary.badges.size} Badges",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -270,6 +407,212 @@ fun DashboardScreen(
                         iconColor = Color(0xFFEAB308),
                         modifier = Modifier.weight(1f)
                     )
+                }
+            }
+        }
+
+        // B.2 Visual Analytics & Sprint Velocity Spotlight Card
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToAnalytics() },
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Insights,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = "Sprint Velocity & Visual Analytics",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "Real-time task velocity & funnel metrics",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = "Open Analytics",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    // Progress calculations
+                    val totalTasksCount = tasks.size
+                    val completedTasksCount = tasks.count { it.status == "Completed" }
+                    val inProgressTasksCount = tasks.count { it.status == "In Progress" }
+                    val blockedTasksCount = tasks.count { it.status == "Blocked" }
+                    val completionPct = if (totalTasksCount > 0) (completedTasksCount * 100) / totalTasksCount else 0
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Sprint Completion Velocity",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = "$completionPct% ($completedTasksCount/$totalTasksCount Tasks)",
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = HackTrackSuccess
+                        )
+                    }
+
+                    // Multi-color Progress Track
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(10.dp)
+                            .clip(RoundedCornerShape(5.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        if (totalTasksCount > 0) {
+                            Row(modifier = Modifier.fillMaxSize()) {
+                                if (completedTasksCount > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(completedTasksCount.toFloat())
+                                            .fillMaxHeight()
+                                            .background(HackTrackSuccess)
+                                    )
+                                }
+                                if (inProgressTasksCount > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(inProgressTasksCount.toFloat())
+                                            .fillMaxHeight()
+                                            .background(HackTrackPrimary)
+                                    )
+                                }
+                                if (blockedTasksCount > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(blockedTasksCount.toFloat())
+                                            .fillMaxHeight()
+                                            .background(HackTrackDanger)
+                                    )
+                                }
+                                val remaining = totalTasksCount - completedTasksCount - inProgressTasksCount - blockedTasksCount
+                                if (remaining > 0) {
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(remaining.toFloat())
+                                            .fillMaxHeight()
+                                            .background(Color.Gray.copy(alpha = 0.25f))
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Mini stats chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = HackTrackSuccess.copy(alpha = 0.12f),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(HackTrackSuccess))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "$completedTasksCount Done",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = HackTrackSuccess
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = HackTrackPrimary.copy(alpha = 0.12f),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(HackTrackPrimary))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "$inProgressTasksCount Active",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = HackTrackPrimary
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (blockedTasksCount > 0) HackTrackDanger.copy(alpha = 0.12f) else MaterialTheme.colorScheme.surfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(if (blockedTasksCount > 0) HackTrackDanger else Color.Gray)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "$blockedTasksCount Blocked",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (blockedTasksCount > 0) HackTrackDanger else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -536,7 +879,7 @@ fun DashboardScreen(
                             color = HackTrackOnPrimaryContainer
                         )
                         Text(
-                            text = "Let HackTrack AI break down problem statements or outline your pitch deck.",
+                            text = "Let Dev Sprint AI break down problem statements or outline your pitch deck.",
                             style = MaterialTheme.typography.bodySmall,
                             color = HackTrackOnPrimaryContainer.copy(alpha = 0.8f)
                         )

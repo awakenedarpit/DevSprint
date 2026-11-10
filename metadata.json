@@ -1,5 +1,5 @@
 {
-  "name": "HackTrack",
+  "name": "Dev Sprint",
   "description": "Your Personal Hackathon Command Centre — manage competitions, tasks, timelines, submissions, projects, and achievements.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]

@@ -1,6 +1,7 @@
 package com.example.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ai.HackTrackAiService
 import com.example.model.Hackathon
@@ -21,15 +22,15 @@ data class ChatMessage(
     val timestamp: Long = System.currentTimeMillis()
 )
 
-class AiAssistantViewModel : ViewModel() {
+class AiAssistantViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val aiService = HackTrackAiService()
+    private val aiService = HackTrackAiService(application)
 
     private val _messages = MutableStateFlow<List<ChatMessage>>(
         listOf(
             ChatMessage(
                 sender = "ai",
-                content = "👋 **Welcome to HackTrack AI!** I am your hackathon mentor, architect, and strategy engine.\n\nAsk me to:\n- ⚡ **Break down problem statements** into MVP features\n- ⏱️ **Generate a 48-Hour sprint roadmap**\n- 📑 **Review and outline your pitch deck**\n- 🎯 **Prioritize your weekly submissions and deadlines**"
+                content = "👋 **Welcome to Dev Sprint AI!** I am your hackathon mentor, architect, and strategy engine.\n\nAsk me to:\n- ⚡ **Break down problem statements** into MVP features\n- ⏱️ **Generate a 48-Hour sprint roadmap**\n- 📑 **Review and outline your pitch deck**\n- 🎯 **Prioritize your weekly submissions and deadlines**"
             )
         )
     )

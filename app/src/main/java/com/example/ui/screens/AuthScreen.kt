@@ -90,7 +90,7 @@ fun AuthScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             Text(
-                text = "HackTrack",
+                text = "Dev Sprint",
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.ExtraBold,
                 color = Color.White

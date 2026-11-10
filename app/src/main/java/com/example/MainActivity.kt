@@ -37,9 +37,10 @@ enum class NavDestination(val label: String, val selectedIcon: ImageVector, val 
     HOME("Home", Icons.Filled.Dashboard, Icons.Outlined.Dashboard),
     HACKATHONS("Hackathons", Icons.Filled.RocketLaunch, Icons.Outlined.RocketLaunch),
     TASKS("Tasks", Icons.Filled.Checklist, Icons.Outlined.Checklist),
+    ANALYTICS("Analytics", Icons.Filled.Insights, Icons.Outlined.Insights),
+    AI("Dev Sprint AI", Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome),
     CALENDAR("Calendar", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
-    AI("HackTrack AI", Icons.Filled.AutoAwesome, Icons.Outlined.AutoAwesome),
-    ACHIEVEMENTS("Trophies", Icons.Filled.EmojiEvents, Icons.Outlined.EmojiEvents),
+    ACHIEVEMENTS("Milestones", Icons.Filled.MilitaryTech, Icons.Outlined.MilitaryTech),
     PROFILE("Profile", Icons.Filled.Person, Icons.Outlined.Person)
 }
 
@@ -186,6 +187,34 @@ fun MainAppContent(
                                     contentDescription = "Toggle Theme"
                                 )
                             }
+
+                            // Calendar quick access
+                            IconButton(
+                                onClick = {
+                                    viewingHackathonId = null
+                                    currentDestination = NavDestination.CALENDAR
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = if (currentDestination == NavDestination.CALENDAR) Icons.Filled.CalendarMonth else Icons.Outlined.CalendarMonth,
+                                    contentDescription = "Calendar",
+                                    tint = if (currentDestination == NavDestination.CALENDAR) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            // Profile & Settings quick access
+                            IconButton(
+                                onClick = {
+                                    viewingHackathonId = null
+                                    currentDestination = NavDestination.PROFILE
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = if (currentDestination == NavDestination.PROFILE) Icons.Filled.Person else Icons.Outlined.Person,
+                                    contentDescription = "Profile & Settings",
+                                    tint = if (currentDestination == NavDestination.PROFILE) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         },
                         colors = TopAppBarDefaults.topAppBarColors(
                             containerColor = MaterialTheme.colorScheme.surface
@@ -237,6 +266,8 @@ fun MainAppContent(
                                 onNavigateToHackathonDetail = { id -> viewingHackathonId = id },
                                 onNavigateToTasks = { currentDestination = NavDestination.TASKS },
                                 onNavigateToCalendar = { currentDestination = NavDestination.CALENDAR },
+                                onNavigateToAnalytics = { currentDestination = NavDestination.ANALYTICS },
+                                onNavigateToAchievements = { currentDestination = NavDestination.ACHIEVEMENTS },
                                 onNavigateToAiAssistant = { currentDestination = NavDestination.AI },
                                 onOpenAddHackathonDialog = { showAddHackathonDialog = true },
                                 onOpenAddTaskDialog = {
@@ -255,6 +286,12 @@ fun MainAppContent(
                                     defaultHackathonIdForTask = null
                                     showAddTaskDialog = true
                                 }
+                            )
+                            NavDestination.ANALYTICS -> AnalyticsScreen(
+                                viewModel = hackTrackViewModel,
+                                onNavigateToTasks = { currentDestination = NavDestination.TASKS },
+                                onNavigateToHackathons = { currentDestination = NavDestination.HACKATHONS },
+                                onNavigateToAiAssistant = { currentDestination = NavDestination.AI }
                             )
                             NavDestination.CALENDAR -> CalendarScreen(
                                 viewModel = hackTrackViewModel,

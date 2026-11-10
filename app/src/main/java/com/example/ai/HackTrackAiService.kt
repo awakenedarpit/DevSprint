@@ -1,9 +1,11 @@
 package com.example.ai
 
+import android.content.Context
 import android.util.Log
 import com.example.model.Hackathon
 import com.example.model.Project
 import com.example.model.TaskItem
+import com.example.util.AiConfigHelper
 import com.google.firebase.Firebase
 import com.google.firebase.ai.GenerativeModel
 import com.google.firebase.ai.ai
@@ -16,14 +18,19 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONArray
 import org.json.JSONObject
+import java.io.BufferedReader
+import java.io.InputStreamReader
 import java.util.concurrent.TimeUnit
 
-private const val TAG = "HackTrackAi"
+private const val TAG = "DevSprintAi"
 
-class HackTrackAiService {
+class HackTrackAiService(private val context: Context? = null) {
 
     // Lazy initialization per firebase-ai-logic-android to avoid startup overhead
     private val model: GenerativeModel by lazy {
@@ -32,10 +39,14 @@ class HackTrackAiService {
 
     private val httpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .connectTimeout(12, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
             .followRedirects(true)
             .build()
+    }
+
+    private fun getActiveApiKey(): String {
+        return context?.let { AiConfigHelper.getGeminiApiKey(it) }.orEmpty()
     }
 
     /**
@@ -48,7 +59,7 @@ class HackTrackAiService {
         pendingTasks: List<TaskItem>
     ): Flow<String> = flow {
         val contextBuilder = StringBuilder()
-        contextBuilder.append("You are 'HackTrack AI', an elite hackathon mentor, software architect, and competition strategist.\n")
+        contextBuilder.append("You are 'Dev Sprint AI', an elite hackathon mentor, software architect, and competition strategist.\n")
         contextBuilder.append("Here is the user's active competition command center data:\n")
 
         if (activeHackathons.isNotEmpty()) {
@@ -82,7 +93,22 @@ class HackTrackAiService {
         contextBuilder.append("User Query: $userPrompt\n")
 
         val prompt = contextBuilder.toString()
+        val apiKey = getActiveApiKey()
 
+        if (apiKey.isNotBlank()) {
+            // Direct Gemini REST API Stream (Physical Device Mode)
+            try {
+                val directStream = streamGeminiRestApi(prompt, apiKey)
+                emitAll(directStream)
+                return@flow
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Direct Gemini REST stream failed, trying Firebase: ${e.message}")
+            }
+        }
+
+        // Firebase AI Logic Stream (with App Check)
         try {
             val stream = model.generateContentStream(prompt).mapNotNull { it.text }
             emitAll(stream)
@@ -90,9 +116,138 @@ class HackTrackAiService {
             throw e
         } catch (e: Exception) {
             Log.e(TAG, "Gemini stream error: ${e.message}", e)
-            emit("\n[Notice: AI response interrupted or App Check initializing: ${e.localizedMessage ?: "Network error"}. Please retry in a moment.]")
+            val isAppCheckError = e.message?.contains("AppCheck", ignoreCase = true) == true ||
+                    e.message?.contains("403", ignoreCase = true) == true ||
+                    e.message?.contains("attestation", ignoreCase = true) == true
+
+            if (isAppCheckError) {
+                emit(
+                    "\n⚠️ **Firebase App Check Notice on Mobile Phone**:\n" +
+                    "On physical Android devices, Firebase App Check requires attestation.\n\n" +
+                    "👉 **To enable AI instantly on your phone**:\n" +
+                    "1. Get a free Gemini API Key from [aistudio.google.com](https://aistudio.google.com)\n" +
+                    "2. Go to **Profile > AI Settings** in this app\n" +
+                    "3. Paste your key and tap **Save Key**!\n\n" +
+                    "Once added, AI features will run smoothly on any phone."
+                )
+            } else {
+                emit("\n[Notice: AI response interrupted: ${e.localizedMessage ?: "Network error"}. Please retry.]")
+            }
         }
     }.flowOn(Dispatchers.IO)
+
+    /**
+     * Streams from Google Gemini REST API using SSE (Server-Sent Events)
+     */
+    private fun streamGeminiRestApi(prompt: String, apiKey: String): Flow<String> = flow {
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=$apiKey"
+        val requestJson = JSONObject().apply {
+            put("contents", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("role", "user")
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("text", prompt)
+                        })
+                    })
+                })
+            })
+        }
+
+        val request = Request.Builder()
+            .url(url)
+            .post(requestJson.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                val errorBody = response.body?.string().orEmpty()
+                throw IllegalStateException("Gemini API Error HTTP ${response.code}: $errorBody")
+            }
+
+            val source = response.body?.byteStream() ?: return@flow
+            val reader = BufferedReader(InputStreamReader(source))
+            var line: String?
+
+            while (reader.readLine().also { line = it } != null) {
+                val currentLine = line?.trim().orEmpty()
+                if (currentLine.startsWith("data:")) {
+                    val jsonChunk = currentLine.removePrefix("data:").trim()
+                    if (jsonChunk.isNotBlank()) {
+                        try {
+                            val obj = JSONObject(jsonChunk)
+                            val candidates = obj.optJSONArray("candidates")
+                            if (candidates != null && candidates.length() > 0) {
+                                val content = candidates.getJSONObject(0).optJSONObject("content")
+                                val parts = content?.optJSONArray("parts")
+                                if (parts != null && parts.length() > 0) {
+                                    val text = parts.getJSONObject(0).optString("text")
+                                    if (text.isNotBlank()) {
+                                        emit(text)
+                                    }
+                                }
+                            }
+                        } catch (ex: Exception) {
+                            Log.w(TAG, "Chunk parse warning: ${ex.message}")
+                        }
+                    }
+                }
+            }
+        }
+    }.flowOn(Dispatchers.IO)
+
+    private suspend fun generateContentUnary(prompt: String): String = withContext(Dispatchers.IO) {
+        val apiKey = getActiveApiKey()
+        if (apiKey.isNotBlank()) {
+            try {
+                return@withContext callGeminiRestApiUnary(prompt, apiKey)
+            } catch (e: Exception) {
+                Log.w(TAG, "Direct REST failed, falling back to Firebase AI: ${e.message}")
+            }
+        }
+
+        withTimeout(45_000L) {
+            model.generateContent(prompt).text.orEmpty()
+        }
+    }
+
+    private fun callGeminiRestApiUnary(prompt: String, apiKey: String): String {
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
+        val requestJson = JSONObject().apply {
+            put("contents", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("role", "user")
+                    put("parts", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("text", prompt)
+                        })
+                    })
+                })
+            })
+        }
+
+        val request = Request.Builder()
+            .url(url)
+            .post(requestJson.toString().toRequestBody("application/json".toMediaType()))
+            .build()
+
+        httpClient.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) {
+                val err = response.body?.string().orEmpty()
+                throw IllegalStateException("HTTP ${response.code}: $err")
+            }
+            val bodyString = response.body?.string().orEmpty()
+            val json = JSONObject(bodyString)
+            val candidates = json.optJSONArray("candidates")
+            if (candidates != null && candidates.length() > 0) {
+                val parts = candidates.getJSONObject(0).optJSONObject("content")?.optJSONArray("parts")
+                if (parts != null && parts.length() > 0) {
+                    return parts.getJSONObject(0).optString("text")
+                }
+            }
+            return ""
+        }
+    }
 
     /**
      * Automatically extracts hackathon and competition details from a website URL.
@@ -101,7 +256,7 @@ class HackTrackAiService {
         val pageText = fetchPageContent(url)
 
         val prompt = """
-            You are HackTrack AI. Extract competition and hackathon metadata from this link and web page content.
+            You are Dev Sprint AI. Extract competition and hackathon metadata from this link and web page content.
             
             Website URL: $url
             Page Content Snippet:
@@ -122,9 +277,7 @@ class HackTrackAiService {
         """.trimIndent()
 
         val rawResponse = try {
-            withTimeout(45_000L) {
-                model.generateContent(prompt).text.orEmpty()
-            }
+            generateContentUnary(prompt)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -209,7 +362,7 @@ class HackTrackAiService {
      */
     suspend fun breakDownProblemStatement(problemStatement: String): String {
         val prompt = """
-            You are HackTrack AI. Break down the following hackathon problem statement into a 48-hour execution sprint plan:
+            You are Dev Sprint AI. Break down the following hackathon problem statement into a 48-hour execution sprint plan:
             
             Problem Statement:
             "$problemStatement"
@@ -226,10 +379,8 @@ class HackTrackAiService {
         """.trimIndent()
 
         return try {
-            withTimeout(60_000L) {
-                val response = model.generateContent(prompt)
-                response.text ?: "Could not generate breakdown. Please try again."
-            }
+            val res = generateContentUnary(prompt)
+            if (res.isNotBlank()) res else "Could not generate breakdown. Please try again."
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -243,7 +394,7 @@ class HackTrackAiService {
      */
     suspend fun generatePitchDeckOutline(projectName: String, problem: String, solution: String): String {
         val prompt = """
-            You are HackTrack AI. Prepare a winning 10-slide Pitch Deck Outline for a hackathon demo:
+            You are Dev Sprint AI. Prepare a winning 10-slide Pitch Deck Outline for a hackathon demo:
             Project: $projectName
             Problem: $problem
             Solution: $solution
@@ -256,10 +407,8 @@ class HackTrackAiService {
         """.trimIndent()
 
         return try {
-            withTimeout(60_000L) {
-                val response = model.generateContent(prompt)
-                response.text ?: "Could not generate pitch deck outline."
-            }
+            val res = generateContentUnary(prompt)
+            if (res.isNotBlank()) res else "Could not generate pitch deck outline."
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

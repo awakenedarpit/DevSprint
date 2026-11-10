@@ -124,6 +124,74 @@ fun TasksScreen(
                 }
             }
 
+            // Sprint Velocity mini progress strip
+            val totalAll = allTasks.size
+            val doneCount = allTasks.count { it.status == "Completed" }
+            val inProgCount = allTasks.count { it.status == "In Progress" }
+            val blkCount = allTasks.count { it.status == "Blocked" }
+            val pct = if (totalAll > 0) (doneCount * 100) / totalAll else 0
+
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = "Sprint Velocity:",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "$pct% Done ($doneCount/$totalAll)",
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = HackTrackSuccess
+                        )
+                    }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        if (inProgCount > 0) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = HackTrackPrimary.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "$inProgCount Active",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = HackTrackPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                        if (blkCount > 0) {
+                            Surface(
+                                shape = RoundedCornerShape(6.dp),
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.15f)
+                            ) {
+                                Text(
+                                    text = "$blkCount Blocked",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             if (tasks.isEmpty()) {
                 EmptyStateView(
                     icon = Icons.Outlined.Checklist,

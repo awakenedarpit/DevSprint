@@ -17,12 +17,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
+import com.example.util.AiConfigHelper
 import com.example.model.UserProfile
 import com.example.ui.theme.HackTrackPrimary
 import com.example.ui.theme.HackTrackSuccess
@@ -54,6 +59,13 @@ fun ProfileSettingsScreen(
     var editCourse by remember { mutableStateOf(profile.course) }
     var editYear by remember { mutableStateOf(profile.year) }
     var editBio by remember { mutableStateOf(profile.bio) }
+
+    val clipboardManager = LocalClipboardManager.current
+    var customApiKey by remember { mutableStateOf(AiConfigHelper.getCustomGeminiApiKey(context)) }
+    var apiKeyInput by remember { mutableStateOf(customApiKey) }
+    var isApiKeyVisible by remember { mutableStateOf(false) }
+    var apiKeySaveSuccessMessage by remember { mutableStateOf<String?>(null) }
+    val appCheckDebugToken = remember { AiConfigHelper.getAppCheckDebugToken(context) }
 
     val currentUser = Firebase.auth.currentUser
 
@@ -259,6 +271,165 @@ fun ProfileSettingsScreen(
                             checked = isCalendarSyncEnabled,
                             onCheckedChange = { viewModel.setGoogleCalendarSyncEnabled(it) }
                         )
+                    }
+                }
+            }
+        }
+
+        // AI & Gemini Engine Configuration Card
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.AutoAwesome,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "AI & Gemini Configuration",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        // Badge indicating active mode
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (customApiKey.isNotBlank()) HackTrackSuccess.copy(alpha = 0.15f)
+                            else MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                text = if (customApiKey.isNotBlank()) "Direct API Key" else "Default / App Check",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = if (customApiKey.isNotBlank()) HackTrackSuccess else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Dev Sprint AI features (Project Architect, Website Link Extractor, Problem Breakdown, and Pitch Assistant) run via Gemini.\n\nOn physical mobile phones: Firebase App Check requires device attestation. If AI calls fail or return 403 on your phone, simply enter your free Gemini API Key from Google AI Studio (aistudio.google.com). Direct API access bypasses App Check and works instantly on all devices.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        lineHeight = 18.sp
+                    )
+
+                    OutlinedTextField(
+                        value = apiKeyInput,
+                        onValueChange = {
+                            apiKeyInput = it
+                            apiKeySaveSuccessMessage = null
+                        },
+                        label = { Text("Gemini API Key (Optional)") },
+                        placeholder = { Text("AIzaSy...") },
+                        singleLine = true,
+                        visualTransformation = if (isApiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { isApiKeyVisible = !isApiKeyVisible }) {
+                                Icon(
+                                    imageVector = if (isApiKeyVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = if (isApiKeyVisible) "Hide Key" else "Show Key"
+                                )
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                AiConfigHelper.setCustomGeminiApiKey(context, apiKeyInput.trim())
+                                customApiKey = apiKeyInput.trim()
+                                apiKeySaveSuccessMessage = if (apiKeyInput.isNotBlank()) "API Key saved! Direct Gemini engine is now active." else "API Key cleared."
+                            },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Icon(Icons.Default.Save, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Save API Key")
+                        }
+
+                        if (customApiKey.isNotBlank()) {
+                            OutlinedButton(
+                                onClick = {
+                                    AiConfigHelper.clearCustomGeminiApiKey(context)
+                                    customApiKey = ""
+                                    apiKeyInput = ""
+                                    apiKeySaveSuccessMessage = "Custom API Key removed. Using default backend."
+                                },
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text("Clear")
+                            }
+                        }
+                    }
+
+                    if (apiKeySaveSuccessMessage != null) {
+                        Text(
+                            text = apiKeySaveSuccessMessage!!,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = HackTrackSuccess,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    if (!appCheckDebugToken.isNullOrBlank()) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                text = "Device App Check Debug Secret:",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = appCheckDebugToken,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = {
+                                        clipboardManager.setText(AnnotatedString(appCheckDebugToken))
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy Token", modifier = Modifier.size(16.dp))
+                                }
+                            }
+                        }
                     }
                 }
             }

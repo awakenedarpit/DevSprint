@@ -443,6 +443,17 @@ fun OverviewTabContent(hackathon: Hackathon) {
             }
         }
 
+        // Live Animated Hackathon Countdown Timer
+        if (hackathon.submissionDeadline.isNotBlank()) {
+            item {
+                LiveHackathonCountdownTimer(
+                    competitionName = hackathon.name,
+                    deadlineTitle = "Final Project & Code Submission",
+                    deadlineDateStr = hackathon.submissionDeadline
+                )
+            }
+        }
+
         // Key Deadlines Card
         item {
             Card(

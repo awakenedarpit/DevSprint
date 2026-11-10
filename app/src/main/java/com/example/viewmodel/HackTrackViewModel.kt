@@ -158,7 +158,7 @@ class HackTrackViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    private val aiService = com.example.ai.HackTrackAiService()
+    private val aiService = com.example.ai.HackTrackAiService(application)
 
     val themeMode: StateFlow<com.example.ui.theme.ThemeMode> = repository.themeMode
     val isGoogleCalendarSyncEnabled: StateFlow<Boolean> = repository.isGoogleCalendarSyncEnabled
